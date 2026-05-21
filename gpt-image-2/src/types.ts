@@ -120,3 +120,29 @@ export interface GenerateImageResult {
     visionModel: string;
   };
 }
+
+export interface ImageGapAnalysisOptions {
+  referenceImagePath?: string;
+  referenceImageUrl?: string;
+  candidateImagePath?: string;
+  candidateImageUrl?: string;
+  originalPrompt?: string;
+  directorMode?: DirectorMode;
+  visionModel: string;
+}
+
+export interface ImageGapAnalysisResult {
+  directorMode: Exclude<DirectorMode, "auto">;
+  referenceStrengths: string[];
+  candidateStrengths: string[];
+  candidateWeaknesses: string[];
+  missingElements: string[];
+  dimensionScores: Record<string, number>;
+  overallSimilarity: number;
+  overallGap: number;
+  promptDeltas: string[];
+  negativePromptAdditions: string[];
+  nextPrompt: string;
+  rerankRubricAdjustments: string[];
+  rationale: string;
+}

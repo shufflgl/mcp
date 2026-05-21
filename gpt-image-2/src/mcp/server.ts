@@ -6,8 +6,16 @@ import { generateImagePipeline } from "../generation/imageService.js";
 import { buildPromptPipeline } from "../prompt/pipeline.js";
 import { listDirectorProfiles } from "../director/modes.js";
 import { listStylePresets } from "../styles/presets.js";
-import { GenerateImageSchema, RewritePromptSchema, toPipelineOptions, toRewriteOptions } from "./schemas.js";
-import type { GenerateImageResult } from "../types.js";
+import { analyzeImageGap } from "../vision/gapAnalyzer.js";
+import {
+  AnalyzeImageGapSchema,
+  GenerateImageSchema,
+  GenerateImageWithReferenceSchema,
+  RewritePromptSchema,
+  toPipelineOptions,
+  toRewriteOptions
+} from "./schemas.js";
+import type { GeneratedImage, GenerateImageResult, ImageGapAnalysisResult } from "../types.js";
 
 export function createServer(): McpServer {
   const server = new McpServer({
@@ -105,6 +113,95 @@ export function createServer(): McpServer {
     })
   );
 
+  server.registerTool(
+    "analyze_image_gap",
+    {
+      title: "Analyze image gap",
+      description: "Compares a reference target image with a generated candidate image and returns production-focused weaknesses, prompt deltas, negative prompts, and rerank adjustments.",
+      inputSchema: shape(AnalyzeImageGapSchema)
+    },
+    async (input) => {
+      const parsed = AnalyzeImageGapSchema.parse(input);
+      const client = new OpenAICompatibleClient(readGatewayConfig({
+        apiKey: parsed.api_key,
+        baseUrl: parsed.base_url,
+        timeoutMs: parsed.timeout_ms
+      }));
+      const result = await analyzeImageGap({
+        referenceImagePath: parsed.reference_image_path,
+        referenceImageUrl: parsed.reference_image_url,
+        candidateImagePath: parsed.candidate_image_path,
+        candidateImageUrl: parsed.candidate_image_url,
+        originalPrompt: parsed.original_prompt,
+        directorMode: parsed.director_mode,
+        visionModel: parsed.vision_model
+      }, client);
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify(result, null, 2)
+          }
+        ]
+      };
+    }
+  );
+
+  server.registerTool(
+    "generate_image_with_reference",
+    {
+      title: "Generate image with reference analysis",
+      description: "Generates an image, compares it against a reference target, and optionally performs one retry using the gap analysis prompt deltas.",
+      inputSchema: shape(GenerateImageWithReferenceSchema)
+    },
+    async (input) => {
+      const parsed = GenerateImageWithReferenceSchema.parse(input);
+      const gatewayOverrides = {
+        apiKey: parsed.api_key,
+        baseUrl: parsed.base_url,
+        timeoutMs: parsed.timeout_ms
+      };
+      const firstResult = await generateImagePipeline(toPipelineOptions({ ...parsed, save_images: true }), gatewayOverrides);
+      const client = new OpenAICompatibleClient(readGatewayConfig(gatewayOverrides));
+      const gapAnalysis = await analyzeImageGap({
+        referenceImagePath: parsed.reference_image_path,
+        referenceImageUrl: parsed.reference_image_url,
+        ...imageReference("candidate", firstResult.bestImage),
+        originalPrompt: parsed.prompt,
+        directorMode: parsed.director_mode,
+        visionModel: parsed.vision_model
+      }, client);
+
+      let retryResult: GenerateImageResult | undefined;
+      if (parsed.retry && gapAnalysis.overallGap >= parsed.retry_min_gap) {
+        retryResult = await generateImagePipeline(toPipelineOptions({
+          ...parsed,
+          prompt: composeRetryPrompt(parsed.prompt, gapAnalysis),
+          negative_prompt: [parsed.negative_prompt, ...gapAnalysis.negativePromptAdditions].filter(Boolean).join(", "),
+          sample_count: 1,
+          quality_mode: "standard",
+          request_mode: "single",
+          refine: false,
+          save_images: true
+        }), gatewayOverrides);
+      }
+
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify({
+              first_result: summarizeGenerateResult(firstResult),
+              gap_analysis: gapAnalysis,
+              retry_result: retryResult ? summarizeGenerateResult(retryResult) : undefined,
+              final_result: summarizeGenerateResult(retryResult ?? firstResult)
+            }, null, 2)
+          }
+        ]
+      };
+    }
+  );
+
   return server;
 }
 
@@ -155,4 +252,39 @@ function stripImageData(image: GenerateImageResult["bestImage"]) {
 
 function hasGatewayKey(apiKey?: string): boolean {
   return Boolean(apiKey?.trim() || process.env.OPENAI_API_KEY?.trim());
+}
+
+function summarizeGenerateResult(result: GenerateImageResult) {
+  return {
+    best_image: stripImageData(result.bestImage),
+    all_images: result.allImages.map(stripImageData),
+    scores: result.scores,
+    expanded_prompt: result.prompt.expandedPrompt,
+    final_prompt: result.prompt.finalPrompt,
+    prompt_pipeline: result.prompt,
+    refinement_prompt: result.refinementPrompt,
+    gateway: result.gateway
+  };
+}
+
+function imageReference(prefix: "reference" | "candidate", image: GeneratedImage) {
+  if (image.savedPath) {
+    return { [`${prefix}ImagePath`]: image.savedPath };
+  }
+  if (image.url) {
+    return { [`${prefix}ImageUrl`]: image.url };
+  }
+  if (image.b64Json) {
+    return { [`${prefix}ImageUrl`]: `data:${image.mimeType};base64,${image.b64Json}` };
+  }
+  throw new Error(`Generated ${prefix} image has no path, URL, or base64 data for analysis.`);
+}
+
+function composeRetryPrompt(originalPrompt: string, gapAnalysis: ImageGapAnalysisResult): string {
+  return [
+    originalPrompt,
+    "Reference gap repair instructions:",
+    gapAnalysis.nextPrompt,
+    ...gapAnalysis.promptDeltas
+  ].filter(Boolean).join("\n");
 }

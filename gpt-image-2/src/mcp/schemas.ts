@@ -10,6 +10,21 @@ import {
 } from "../config.js";
 import type { ImagePipelineOptions } from "../types.js";
 
+const DirectorModeSchema = z.enum([
+  "auto",
+  "general",
+  "poster_editorial",
+  "product_ad",
+  "portrait",
+  "character_design",
+  "architecture_interior",
+  "landscape_travel",
+  "food_editorial",
+  "infographic",
+  "social_media_card",
+  "logo_brand_mark"
+]);
+
 export const GenerateImageSchema = z.object({
   prompt: z.string().min(1).describe("User's image request."),
   style: z.string().optional().default("cinematic").describe("Style preset name or custom style text."),
@@ -27,20 +42,7 @@ export const GenerateImageSchema = z.object({
   request_mode: z.enum(["single", "parallel"]).optional().default("single"),
   save_images: z.boolean().optional().default(true),
   output_dir: z.string().optional().default(defaultOutputDir()),
-  director_mode: z.enum([
-    "auto",
-    "general",
-    "poster_editorial",
-    "product_ad",
-    "portrait",
-    "character_design",
-    "architecture_interior",
-    "landscape_travel",
-    "food_editorial",
-    "infographic",
-    "social_media_card",
-    "logo_brand_mark"
-  ]).optional().default("auto").describe("Scene-specific image director mode. Use auto to route by prompt."),
+  director_mode: DirectorModeSchema.optional().default("auto").describe("Scene-specific image director mode. Use auto to route by prompt."),
   quality_mode: z.enum(["fast", "standard", "official_like"]).optional().default("standard").describe("Quality strategy hint for clients and future pipeline defaults."),
   seed: z.number().int().optional(),
   negative_prompt: z.string().optional(),
@@ -56,20 +58,7 @@ export const RewritePromptSchema = z.object({
   style: z.string().optional().default("cinematic"),
   aspect_ratio: z.enum(["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "auto"]).optional().default("1:1"),
   rewrite_mode: z.enum(["auto", "llm", "template", "off"]).optional().default("template"),
-  director_mode: z.enum([
-    "auto",
-    "general",
-    "poster_editorial",
-    "product_ad",
-    "portrait",
-    "character_design",
-    "architecture_interior",
-    "landscape_travel",
-    "food_editorial",
-    "infographic",
-    "social_media_card",
-    "logo_brand_mark"
-  ]).optional().default("auto"),
+  director_mode: DirectorModeSchema.optional().default("auto"),
   text_model: z.string().optional().default(defaultTextModel()),
   user_context: z.string().optional(),
   negative_prompt: z.string().optional(),
@@ -78,8 +67,30 @@ export const RewritePromptSchema = z.object({
   timeout_ms: z.number().int().min(1000).optional()
 });
 
+export const AnalyzeImageGapSchema = z.object({
+  reference_image_path: z.string().optional().describe("Local filesystem path to the reference target image."),
+  reference_image_url: z.string().optional().describe("Remote URL or data URL for the reference target image."),
+  candidate_image_path: z.string().optional().describe("Local filesystem path to the generated candidate image."),
+  candidate_image_url: z.string().optional().describe("Remote URL or data URL for the generated candidate image."),
+  original_prompt: z.string().optional().describe("Original prompt used to create or describe the desired image."),
+  director_mode: DirectorModeSchema.optional().default("auto"),
+  vision_model: z.string().optional().default(defaultVisionModel()),
+  api_key: z.string().optional().describe("Optional per-call gateway API key. Environment OPENAI_API_KEY is preferred."),
+  base_url: z.string().optional().default(env("OPENAI_BASE_URL")),
+  timeout_ms: z.number().int().min(1000).optional()
+});
+
+export const GenerateImageWithReferenceSchema = GenerateImageSchema.extend({
+  reference_image_path: z.string().optional().describe("Local filesystem path to the reference target image."),
+  reference_image_url: z.string().optional().describe("Remote URL or data URL for the reference target image."),
+  retry: z.boolean().optional().default(false).describe("When true, run one additional generation using prompt deltas from the gap analysis."),
+  retry_min_gap: z.number().min(0).max(100).optional().default(25).describe("Minimum overall gap score required before retry generation is triggered.")
+});
+
 export type GenerateImageInput = z.infer<typeof GenerateImageSchema>;
 export type RewritePromptInput = z.infer<typeof RewritePromptSchema>;
+export type AnalyzeImageGapInput = z.infer<typeof AnalyzeImageGapSchema>;
+export type GenerateImageWithReferenceInput = z.infer<typeof GenerateImageWithReferenceSchema>;
 
 export function toPipelineOptions(input: GenerateImageInput): ImagePipelineOptions {
   const quality = applyQualityMode(input);

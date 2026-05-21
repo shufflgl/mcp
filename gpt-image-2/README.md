@@ -150,6 +150,67 @@ Codex / Claude Desktop / 其他 MCP client 的 stdio 配置示例：
 
 例如海报会按版式、文字层级、信息密度、主视觉、纸张材质和一致性评分；产品图会按产品轮廓、材质、商业光、反射控制和背景纪律评分。
 
+### `analyze_image_gap`
+
+对比参考图和候选图，输出面向下一轮生成的结构化差距分析。适合用官方参考图或客户给定参考图来迭代候选结果。
+
+```json
+{
+  "reference_image_path": "/path/to/reference.png",
+  "candidate_image_path": "/path/to/candidate.png",
+  "original_prompt": "生成一张高级城市文旅海报，主题为北京冬季城市图鉴",
+  "director_mode": "auto"
+}
+```
+
+也可以使用 URL：
+
+```json
+{
+  "reference_image_url": "https://example.com/reference.png",
+  "candidate_image_url": "https://example.com/candidate.png",
+  "director_mode": "poster_editorial"
+}
+```
+
+返回内容包含：
+
+- `referenceStrengths`
+- `candidateStrengths`
+- `candidateWeaknesses`
+- `missingElements`
+- `dimensionScores`
+- `overallSimilarity`
+- `overallGap`
+- `promptDeltas`
+- `negativePromptAdditions`
+- `nextPrompt`
+- `rerankRubricAdjustments`
+
+### `generate_image_with_reference`
+
+先生成候选图，再自动调用 `analyze_image_gap` 和参考图做差距分析。默认只分析，不自动二次生成；如果设置 `retry: true`，并且 `overallGap >= retry_min_gap`，会把 `promptDeltas`、`nextPrompt` 和 `negativePromptAdditions` 合入一次额外生成。
+
+```json
+{
+  "prompt": "生成一张高级城市文旅海报，主题为北京冬季城市图鉴",
+  "reference_image_path": "/path/to/reference.png",
+  "director_mode": "poster_editorial",
+  "quality_mode": "official_like",
+  "rewrite_mode": "off",
+  "retry": true,
+  "retry_min_gap": 25,
+  "save_images": true
+}
+```
+
+返回内容包含：
+
+- `first_result`
+- `gap_analysis`
+- `retry_result`
+- `final_result`
+
 ## OpenAI-Compatible Gateway
 
 网关默认读取：

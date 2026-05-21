@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { buildPromptPipeline } from "../dist/prompt/pipeline.js";
-import { toPipelineOptions } from "../dist/mcp/schemas.js";
+import { GenerateImageWithReferenceSchema, toPipelineOptions } from "../dist/mcp/schemas.js";
 import { normalizeScore } from "../dist/vision/scorer.js";
 
 test("template prompt pipeline enriches a short prompt", async () => {
@@ -125,4 +125,15 @@ test("official-like quality mode raises sampling and enables rerank refinement",
   assert.equal(options.rerank, true);
   assert.equal(options.refine, true);
   assert.equal(options.requestMode, "parallel");
+});
+
+test("reference generation schema defaults to analyze-only retry behavior", () => {
+  const parsed = GenerateImageWithReferenceSchema.parse({
+    prompt: "reference-guided poster",
+    reference_image_url: "data:image/png;base64,cmVm"
+  });
+
+  assert.equal(parsed.retry, false);
+  assert.equal(parsed.retry_min_gap, 25);
+  assert.equal(parsed.director_mode, "auto");
 });
