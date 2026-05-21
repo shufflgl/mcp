@@ -19,7 +19,7 @@ import type { GeneratedImage, GenerateImageResult, ImageGapAnalysisResult } from
 
 export function createServer(): McpServer {
   const server = new McpServer({
-    name: "gpt-image-quality-mcp",
+    name: "gpt-img-gen",
     version: "0.1.0"
   });
 

@@ -1,11 +1,11 @@
 {
-  "name": "gpt-image-quality-mcp",
+  "name": "gpt-img-gen",
   "version": "0.1.0",
   "description": "MCP server for high-quality image generation through OpenAI-compatible gateways.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "gpt-image-quality-mcp": "dist/index.js"
+    "gpt-img-gen": "dist/index.js"
   },
   "files": [
     "dist",
@@ -16,6 +16,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
+    "mcp:config": "node scripts/print-mcp-config.mjs",
     "test": "npm run build && node --test tests/*.test.mjs"
   },
   "dependencies": {
