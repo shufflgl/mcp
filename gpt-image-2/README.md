@@ -48,6 +48,41 @@ After building the package, add a block like this to your MCP client configurati
 }
 ```
 
+## Local npm Package
+
+You can create a local npm tarball without publishing to the public npm registry:
+
+```bash
+npm run pack:local
+```
+
+This creates a file such as `gpt-img-gen-0.1.0.tgz`. Install it globally on any machine with:
+
+```bash
+npm install -g ./gpt-img-gen-0.1.0.tgz
+```
+
+Then configure MCP clients with:
+
+```json
+{
+  "mcpServers": {
+    "gpt-img-gen": {
+      "command": "gpt-img-gen",
+      "env": {
+        "OPENAI_API_KEY": "<YOUR_API_KEY>",
+        "OPENAI_BASE_URL": "<OPENAI_COMPATIBLE_BASE_URL>",
+        "IMAGE_MODEL": "<IMAGE_MODEL_ID>",
+        "TEXT_MODEL": "<TEXT_MODEL_ID>",
+        "VISION_MODEL": "<VISION_MODEL_ID>"
+      }
+    }
+  }
+}
+```
+
+The package is marked with `private: true`, so `npm publish` is blocked by npm. Use `npm pack` or `npm run pack:local` for private distribution.
+
 The gateway must support:
 
 - `POST /v1/images/generations`
