@@ -77,6 +77,33 @@ test("auto director routes poster prompts to editorial poster mode", async () =>
   assert.match(result.finalPrompt, /blank poster panel/i);
 });
 
+test("auto director routes named IP silhouette posters to character poster mode", async () => {
+  const result = await buildPromptPipeline({
+    prompt: "原神收藏版史诗叙事海报，巨大的草神纳西妲侧脸剪影，内部包含须弥、赛诺、提纳里、柯莱、奈芙尔，梦幻水彩插画",
+    style: "anime",
+    aspectRatio: "3:4",
+    sampleCount: 1,
+    maxImages: 3,
+    quality: "high",
+    outputFormat: "png",
+    imageModel: "test-image-model",
+    textModel: "test-text-model",
+    visionModel: "test-text-model",
+    rewriteMode: "off",
+    rerank: false,
+    refine: false,
+    requestMode: "single",
+    saveImages: false,
+    outputDir: "outputs",
+    directorMode: "auto"
+  });
+
+  assert.equal(result.director.mode, "ip_character_poster");
+  assert.match(result.finalPrompt, /small childlike Dendro Archon/i);
+  assert.match(result.finalPrompt, /Cyno identity anchor/i);
+  assert.match(result.finalPrompt, /generic fantasy archetypes/i);
+});
+
 test("domain scores are preserved during score normalization", () => {
   const score = normalizeScore(0, {
     domainScores: {
@@ -98,7 +125,7 @@ test("domain scores are preserved during score normalization", () => {
   assert.equal(score.finalScore, 90);
 });
 
-test("official-like quality mode raises sampling and enables rerank refinement", () => {
+test("official-like quality mode uses bounded sampling and enables rerank refinement", () => {
   const options = toPipelineOptions({
     prompt: "高级产品广告",
     style: "product",
@@ -121,10 +148,37 @@ test("official-like quality mode raises sampling and enables rerank refinement",
     base_url: "https://example.invalid/v1"
   });
 
-  assert.equal(options.sampleCount, 4);
+  assert.equal(options.sampleCount, 3);
+  assert.equal(options.maxImages, 3);
   assert.equal(options.rerank, true);
   assert.equal(options.refine, true);
   assert.equal(options.requestMode, "parallel");
+});
+
+test("generation schema defaults to conservative image budget", () => {
+  const options = toPipelineOptions({
+    prompt: "quick image",
+    style: "cinematic",
+    aspect_ratio: "1:1",
+    quality: "high",
+    output_format: "png",
+    image_model: "test-image-model",
+    text_model: "test-text-model",
+    vision_model: "test-text-model",
+    rewrite_mode: "off",
+    rerank: true,
+    refine: false,
+    request_mode: "single",
+    save_images: true,
+    output_dir: "outputs",
+    director_mode: "auto",
+    quality_mode: "standard",
+    return_image_data: false,
+    base_url: "https://example.invalid/v1"
+  });
+
+  assert.equal(options.sampleCount, 2);
+  assert.equal(options.maxImages, 3);
 });
 
 test("reference generation schema defaults to analyze-only retry behavior", () => {

@@ -179,6 +179,7 @@ export function createServer(): McpServer {
           prompt: composeRetryPrompt(parsed.prompt, gapAnalysis),
           negative_prompt: [parsed.negative_prompt, ...gapAnalysis.negativePromptAdditions].filter(Boolean).join(", "),
           sample_count: 1,
+          max_images: 1,
           quality_mode: "standard",
           request_mode: "single",
           refine: false,

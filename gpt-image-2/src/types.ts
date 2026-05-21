@@ -9,6 +9,7 @@ export type RequestMode = "single" | "parallel";
 export type DirectorMode =
   | "auto"
   | "general"
+  | "ip_character_poster"
   | "poster_editorial"
   | "product_ad"
   | "portrait"
@@ -36,6 +37,7 @@ export interface ImagePipelineOptions {
   aspectRatio?: AspectRatio;
   size?: string;
   sampleCount: number;
+  maxImages: number;
   quality: string;
   outputFormat: OutputFormat;
   imageModel: string;
@@ -79,6 +81,7 @@ export interface PromptPipelineResult {
   appliedStyle: string;
   aestheticPrior: string;
   sceneEnhancement: string;
+  identityGuidance: string;
   compositionRules: string;
   rewriteSource: "llm" | "template" | "off";
   warnings: string[];

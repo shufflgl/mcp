@@ -10,7 +10,9 @@ This server cannot guarantee the exact same result as a closed first-party image
 | --- | --- | --- |
 | `fast` | One sample, no rerank, no refinement. | Drafts and cost-sensitive tests. |
 | `standard` | Uses the caller's explicit sampling, rerank, and refinement settings. | Balanced day-to-day generation. |
-| `official_like` | At least four samples, parallel requests, rerank enabled, refinement enabled. | Higher-quality attempts where latency and cost are acceptable. |
+| `official_like` | At least three requested samples, parallel requests, rerank enabled, refinement enabled when image budget remains. | Higher-quality attempts where latency and cost are acceptable. |
+
+`max_images` caps the total number of generated images in one tool call, including refinement. The default is `3`. Raise it only when cost and latency are acceptable.
 
 Recommended high-quality baseline:
 
@@ -18,7 +20,8 @@ Recommended high-quality baseline:
 {
   "director_mode": "auto",
   "quality_mode": "official_like",
-  "sample_count": 4,
+  "sample_count": 3,
+  "max_images": 3,
   "request_mode": "parallel",
   "rerank": true,
   "refine": true
@@ -42,6 +45,7 @@ Director modes add scene-specific quality targets, failure risks, negative promp
 
 Examples:
 
+- `ip_character_poster`: named game/anime characters, collectible posters, silhouette narrative composites, and IP likeness preservation.
 - `poster_editorial`: layout hierarchy, visual density, editorial composition, title-safe whitespace.
 - `product_ad`: product silhouette, materials, reflections, background discipline.
 - `portrait`: face structure, skin detail, expression, lens realism.

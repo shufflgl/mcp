@@ -15,6 +15,7 @@ Example:
   "aspect_ratio": "9:16",
   "size": "1536x2688",
   "sample_count": 4,
+  "max_images": 3,
   "quality": "high",
   "output_format": "png",
   "director_mode": "auto",
@@ -34,7 +35,8 @@ Common fields:
 | `style` | Built-in style preset or custom style text. |
 | `aspect_ratio` | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, or `auto`. |
 | `size` | Gateway image size, if supported. |
-| `sample_count` | Number of candidates before reranking. |
+| `sample_count` | Requested number of initial candidates before reranking. Default: `2`. |
+| `max_images` | Total image-generation budget for the tool call, including refinement images. Default: `3`. |
 | `quality_mode` | `fast`, `standard`, or `official_like`. |
 | `director_mode` | `auto` or a specific scene director mode. |
 | `rewrite_mode` | `auto`, `llm`, `template`, or `off`. |
@@ -80,6 +82,7 @@ Lists director modes, quality targets, failure risks, and scoring criteria:
 Current modes:
 
 - `general`
+- `ip_character_poster`
 - `poster_editorial`
 - `product_ad`
 - `portrait`

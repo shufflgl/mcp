@@ -39,7 +39,7 @@ npm run pack:local
 This runs `prepack`, rebuilds `dist`, and creates:
 
 ```text
-gpt-img-gen-0.1.0.tgz
+gpt-img-gen-0.1.1.tgz
 ```
 
 The package is marked with `private: true`, so accidental `npm publish` is blocked. Use GitHub Releases for distribution unless a separate registry strategy is explicitly added.
@@ -67,7 +67,7 @@ It must not include:
 Install the tarball into a temporary prefix:
 
 ```bash
-npm install -g --prefix /tmp/gpt-img-gen-install ./gpt-img-gen-0.1.0.tgz
+npm install -g --prefix /tmp/gpt-img-gen-install ./gpt-img-gen-0.1.1.tgz
 ```
 
 Then list MCP tools through the installed binary:
@@ -100,9 +100,9 @@ This repository may contain multiple MCP packages. Use package-scoped release ta
 For this package:
 
 ```text
-Tag:   gpt-img-gen-v0.1.0
-Title: gpt-img-gen v0.1.0
-Asset: gpt-img-gen-0.1.0.tgz
+Tag:   gpt-img-gen-v0.1.1
+Title: gpt-img-gen v0.1.1
+Asset: gpt-img-gen-0.1.1.tgz
 ```
 
 Do not use repository-wide tags such as `v0.1.0` for package releases.

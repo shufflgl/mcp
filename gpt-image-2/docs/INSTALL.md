@@ -16,25 +16,22 @@ This guide is for users who want to install and run `gpt-img-gen`.
 Download the release tarball:
 
 ```bash
-curl -L -o gpt-img-gen-0.1.0.tgz https://github.com/shufflgl/mcp/releases/download/gpt-img-gen-v0.1.0/gpt-img-gen-0.1.0.tgz
+curl -L -o gpt-img-gen-0.1.1.tgz https://github.com/shufflgl/mcp/releases/download/gpt-img-gen-v0.1.1/gpt-img-gen-0.1.1.tgz
 ```
 
 Optional checksum verification:
 
 ```bash
-shasum -a 256 gpt-img-gen-0.1.0.tgz
+shasum -a 256 gpt-img-gen-0.1.1.tgz
 ```
 
-Expected SHA-256:
+Compare the result with the SHA-256 digest shown on the GitHub Release asset.
 
-```text
-912a5f1a194856b5688238b6394591c3521c141778c504d4f3feae0c3f3b91f8
-```
 
 Install globally:
 
 ```bash
-npm install -g ./gpt-img-gen-0.1.0.tgz
+npm install -g ./gpt-img-gen-0.1.1.tgz
 ```
 
 Verify the command is available:

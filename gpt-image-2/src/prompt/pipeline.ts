@@ -19,6 +19,31 @@ const SCENE_RULES: Array<{ pattern: RegExp; enhancement: string }> = [
   { pattern: /realistic|photo|documentary|真实|写实|照片|摄影/i, enhancement: "photorealistic material behavior, natural imperfections, coherent shadows, documentary clarity" }
 ];
 
+const CHARACTER_IDENTITY_ANCHORS: Array<{ pattern: RegExp; guidance: string }> = [
+  {
+    pattern: /nahida|纳西妲|草神|小草神/i,
+    guidance: "Nahida identity anchor: small childlike Dendro Archon, petite youthful proportions, pale white hair with soft green accents, large green eyes, elf-like ears, white-and-green leaf-motif outfit, gentle sacred expression; never adultify her."
+  },
+  {
+    pattern: /cyno|赛诺/i,
+    guidance: "Cyno identity anchor: serious desert General Mahamatra presence, white hair, Anubis/jackal-inspired black headpiece with tall ears, purple-black-gold desert palette, polearm/spear silhouette, disciplined stern expression."
+  },
+  {
+    pattern: /tighnari|提纳里/i,
+    guidance: "Tighnari identity anchor: young forest ranger scholar, dark green-black hair, large fox-like ears, green botanical ranger palette, cape and leaf motifs, calm intelligent expression."
+  },
+  {
+    pattern: /collei|柯莱/i,
+    guidance: "Collei identity anchor: young trainee forest ranger, green hair, youthful gentle face, forest-ranger outfit, scarf and leaf motifs, modest energetic posture."
+  },
+  {
+    pattern: /nefer|neferu|奈芙尔/i,
+    guidance: "Nefer identity anchor: preserve the requested canonical character if recognized; avoid replacing her with a generic desert dancer, random priestess, or unrelated fantasy woman."
+  }
+];
+
+const IP_CHARACTER_PATTERN = /genshin|原神|sumeru|须弥|nahida|纳西妲|cyno|赛诺|tighnari|提纳里|collei|柯莱|nefer|奈芙尔/i;
+
 export async function buildPromptPipeline(
   options: ImagePipelineOptions,
   client?: OpenAICompatibleClient
@@ -45,6 +70,7 @@ export async function buildPromptPipeline(
       : templateRewrite(options, style.prompt);
 
   const sceneEnhancement = buildSceneEnhancement(options.prompt, intent, style.sceneHints);
+  const identityGuidance = buildIdentityGuidance(options.prompt);
   const negativeParts = [...director.negativePrompt, options.negativePrompt].filter(Boolean);
   const negative = negativeParts.length > 0 ? `Avoid: ${negativeParts.join(", ")}.` : "";
   const userContext = options.userContext ? `Context: ${options.userContext.trim()}.` : "";
@@ -54,6 +80,7 @@ export async function buildPromptPipeline(
     style.prompt,
     AESTHETIC_PRIOR,
     sceneEnhancement,
+    identityGuidance,
     COMPOSITION_RULES,
     negative,
     userContext
@@ -68,10 +95,26 @@ export async function buildPromptPipeline(
     appliedStyle: style.name,
     aestheticPrior: AESTHETIC_PRIOR,
     sceneEnhancement,
+    identityGuidance,
     compositionRules: COMPOSITION_RULES,
     rewriteSource,
     warnings
   };
+}
+
+export function buildIdentityGuidance(prompt: string): string {
+  const anchors = CHARACTER_IDENTITY_ANCHORS
+    .filter((anchor) => anchor.pattern.test(prompt))
+    .map((anchor) => anchor.guidance);
+
+  if (anchors.length === 0 && !IP_CHARACTER_PATTERN.test(prompt)) {
+    return "";
+  }
+
+  return [
+    "Named character fidelity policy: preserve canonical likeness, age impression, face proportions, hairstyle, costume color palette, signature accessories, role symbols, and setting-specific motifs for every named existing character; do not replace named characters with generic fantasy archetypes; if uncertain, reduce detail or use symbolic cameos rather than inventing unrelated designs.",
+    anchors.length > 0 ? `Known identity anchors: ${anchors.join(" ")}` : undefined
+  ].filter((part): part is string => Boolean(part)).join(" ");
 }
 
 export function inferIntent(prompt: string, style?: string): PromptIntent {

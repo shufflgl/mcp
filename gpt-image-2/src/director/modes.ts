@@ -67,6 +67,62 @@ export const DIRECTOR_PROFILES: Record<Exclude<DirectorMode, "auto">, DirectorPr
       ]
     }
   },
+  ip_character_poster: {
+    mode: "ip_character_poster",
+    label: "IP Character Poster Director",
+    description: "Collectible posters, fan-style key visuals, silhouette narrative composites, and named game/anime character scenes where character recognizability is critical.",
+    triggers: [/genshin|原神|sumeru|须弥|nahida|纳西妲|cyno|赛诺|tighnari|提纳里|collei|柯莱|nefer|奈芙尔|collector poster|收藏版|史诗叙事海报|silhouette|剪影|double exposure|双重曝光/i],
+    hardConstraints: [
+      "Treat this as a premium character-IP poster: named characters must remain recognizable, not generic fantasy substitutes.",
+      "Preserve canonical age impression, face proportion, hairstyle, silhouette, costume palette, accessories, and role-specific symbols for every named character.",
+      "For silhouette or double-exposure layouts, integrate world scenes inside the hero outline as one coherent narrative composition, not a loose collage.",
+      "If the model is uncertain about a secondary named character, keep that character as a conservative symbolic cameo rather than inventing an unrelated design."
+    ],
+    qualityTargets: [
+      "recognizable named character likeness",
+      "canonical age and proportion",
+      "accurate costume and accessory anchors",
+      "theme-bound worldbuilding details",
+      "coherent silhouette narrative composition",
+      "premium collectible poster restraint"
+    ],
+    failureRisks: [
+      "named characters look generic or wrong",
+      "childlike characters are adultified",
+      "wrong costume palette or missing iconic accessories",
+      "unrelated fantasy figures replacing requested characters",
+      "messy collage instead of integrated narrative silhouette",
+      "template fantasy background"
+    ],
+    negativePrompt: [
+      "generic anime character",
+      "wrong character identity",
+      "adultified child character",
+      "random fantasy substitute",
+      "incorrect costume palette",
+      "missing iconic accessories",
+      "hard collage cutouts",
+      "template fantasy background",
+      "unrelated characters"
+    ],
+    scoring: {
+      criteria: [
+        { key: "character_likeness", label: "Character likeness", weight: 30, description: "Named characters are immediately recognizable from face, age impression, hair, costume, silhouette, and accessories." },
+        { key: "canon_identity_anchors", label: "Canon identity anchors", weight: 20, description: "The image preserves the requested IP's core symbols, setting identity, and character-specific visual cues." },
+        { key: "narrative_silhouette_composition", label: "Narrative silhouette composition", weight: 20, description: "Silhouette, double exposure, and interior story scenes read as one intentional poster composition rather than a collage." },
+        { key: "theme_binding", label: "Theme binding", weight: 15, description: "Buildings, props, creatures, colors, and atmosphere strongly match the requested world and theme." },
+        { key: "style_integration", label: "Style integration", weight: 10, description: "Watercolor, cinematic poster, paper texture, and fantasy mood are consistent and premium." },
+        { key: "artifact_control", label: "Artifact control", weight: 5, description: "No unwanted UI, screenshot, random text, or malformed anatomy distracts from the poster." }
+      ],
+      hardPenalties: [
+        "Primary named character is not recognizable: subtract 35.",
+        "A childlike character is adultified or given the wrong age impression: subtract 30.",
+        "A requested named character is replaced by a generic unrelated figure: subtract 25.",
+        "Silhouette narrative becomes a messy collage: subtract 20.",
+        "IP setting identity is missing or generic: subtract 20."
+      ]
+    }
+  },
   poster_editorial: {
     mode: "poster_editorial",
     label: "Poster / Editorial Cover Director",

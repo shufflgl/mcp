@@ -16,7 +16,11 @@ export async function generateImagePipeline(
     options,
     options.rewriteMode === "template" || options.rewriteMode === "off" ? undefined : client
   );
-  const generated = await generateSamples(client, prompt.finalPrompt, options);
+  const initialSampleCount = boundedSampleCount(options.sampleCount, options.maxImages);
+  if (initialSampleCount < options.sampleCount) {
+    prompt.warnings.push(`Initial sample_count was capped from ${options.sampleCount} to ${initialSampleCount} by max_images=${options.maxImages}.`);
+  }
+  const generated = await generateSamples(client, prompt.finalPrompt, { ...options, sampleCount: initialSampleCount });
   const allImages = options.saveImages
     ? await saveGeneratedImages(generated, options.outputDir, options.outputFormat)
     : generated;
@@ -29,18 +33,23 @@ export async function generateImagePipeline(
   let refinementPrompt: string | undefined;
 
   if (options.refine && scores.some((score) => score.finalScore < 82)) {
-    refinementPrompt = await buildRefinementPrompt(prompt, scores, options, client);
-    const refinedPrompt = `${prompt.finalPrompt}, ${refinementPrompt}`;
-    const refined = await generateSamples(client, refinedPrompt, { ...options, sampleCount: 1, requestMode: "single" });
-    const refinedImages = options.saveImages
-      ? await saveGeneratedImages(refined.map((image) => ({ ...image, index: allImages.length + image.index })), options.outputDir, options.outputFormat)
-      : refined.map((image) => ({ ...image, index: allImages.length + image.index }));
-    const refinedScores = options.rerank
-      ? await scoreImages(refinedImages, prompt, options, client)
-      : refinedImages.map((image) => defaultScore(image.index));
-    allImages.push(...refinedImages);
-    scores.push(...refinedScores);
-    bestImage = pickBestImage(allImages, scores);
+    const remainingBudget = Math.max(0, options.maxImages - allImages.length);
+    if (remainingBudget > 0) {
+      refinementPrompt = await buildRefinementPrompt(prompt, scores, options, client);
+      const refinedPrompt = `${prompt.finalPrompt}, ${refinementPrompt}`;
+      const refined = await generateSamples(client, refinedPrompt, { ...options, sampleCount: Math.min(1, remainingBudget), requestMode: "single" });
+      const refinedImages = options.saveImages
+        ? await saveGeneratedImages(refined.map((image) => ({ ...image, index: allImages.length + image.index })), options.outputDir, options.outputFormat)
+        : refined.map((image) => ({ ...image, index: allImages.length + image.index }));
+      const refinedScores = options.rerank
+        ? await scoreImages(refinedImages, prompt, options, client)
+        : refinedImages.map((image) => defaultScore(image.index));
+      allImages.push(...refinedImages);
+      scores.push(...refinedScores);
+      bestImage = pickBestImage(allImages, scores);
+    } else {
+      prompt.warnings.push(`Refinement skipped because max_images=${options.maxImages} was already reached.`);
+    }
   }
 
   return {
@@ -56,6 +65,10 @@ export async function generateImagePipeline(
       visionModel: options.visionModel
     }
   };
+}
+
+function boundedSampleCount(sampleCount: number, maxImages: number): number {
+  return Math.max(1, Math.min(sampleCount, maxImages));
 }
 
 async function generateSamples(

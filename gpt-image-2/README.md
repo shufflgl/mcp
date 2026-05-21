@@ -9,8 +9,8 @@ It works with Codex, Claude Desktop, Claude Code, Cursor, Cline/Roo, Continue, a
 Install the release tarball:
 
 ```bash
-curl -L -o gpt-img-gen-0.1.0.tgz https://github.com/shufflgl/mcp/releases/download/gpt-img-gen-v0.1.0/gpt-img-gen-0.1.0.tgz
-npm install -g ./gpt-img-gen-0.1.0.tgz
+curl -L -o gpt-img-gen-0.1.1.tgz https://github.com/shufflgl/mcp/releases/download/gpt-img-gen-v0.1.1/gpt-img-gen-0.1.1.tgz
+npm install -g ./gpt-img-gen-0.1.1.tgz
 ```
 
 Then add this MCP config to your client:
@@ -37,7 +37,9 @@ See [`docs/INSTALL.md`](docs/INSTALL.md) for source-based installation and troub
 ## Features
 
 - Prompt expansion or prompt preservation through `rewrite_mode`.
+- Conservative image budgeting through `max_images` so high-quality runs do not unexpectedly create many candidates.
 - Scene-specific director modes for posters, products, portraits, architecture, food, infographics, social cards, and logos.
+- IP character poster mode for named game/anime characters where likeness and canonical identity anchors matter.
 - Multi-sample generation with optional vision reranking.
 - Optional refinement pass for higher-quality attempts.
 - Reference-image gap analysis for comparing generated candidates against a target image.

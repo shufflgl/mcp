@@ -13,6 +13,7 @@ import type { ImagePipelineOptions } from "../types.js";
 const DirectorModeSchema = z.enum([
   "auto",
   "general",
+  "ip_character_poster",
   "poster_editorial",
   "product_ad",
   "portrait",
@@ -30,7 +31,8 @@ export const GenerateImageSchema = z.object({
   style: z.string().optional().default("cinematic").describe("Style preset name or custom style text."),
   aspect_ratio: z.enum(["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "auto"]).optional().default("1:1"),
   size: z.string().optional().describe("Gateway image size, for example 1024x1024, 1536x1536, 1792x1024, or auto if supported."),
-  sample_count: z.number().int().min(1).max(10).optional().default(4).describe("Number of generated candidates before rerank."),
+  sample_count: z.number().int().min(1).max(10).optional().default(2).describe("Requested number of initial candidates before rerank. The effective count is capped by max_images."),
+  max_images: z.number().int().min(1).max(10).optional().default(3).describe("Total image-generation budget for one tool call, including refinement images. Raise this only when cost and latency are acceptable."),
   quality: z.string().optional().default(defaultQuality()).describe("Gateway quality value, commonly auto, low, medium, or high."),
   output_format: z.enum(["png", "jpeg", "webp"]).optional().default(defaultOutputFormat()),
   image_model: z.string().optional().default(defaultImageModel()),
@@ -100,6 +102,7 @@ export function toPipelineOptions(input: GenerateImageInput): ImagePipelineOptio
     aspectRatio: input.aspect_ratio,
     size: input.size,
     sampleCount: quality.sampleCount,
+    maxImages: input.max_images ?? 3,
     quality: input.quality,
     outputFormat: input.output_format,
     imageModel: input.image_model,
@@ -125,6 +128,7 @@ export function toRewriteOptions(input: RewritePromptInput): ImagePipelineOption
     style: input.style,
     aspectRatio: input.aspect_ratio,
     sampleCount: 1,
+    maxImages: 1,
     quality: defaultQuality(),
     outputFormat: defaultOutputFormat(),
     imageModel: defaultImageModel(),
@@ -144,6 +148,8 @@ export function toRewriteOptions(input: RewritePromptInput): ImagePipelineOption
 }
 
 function applyQualityMode(input: GenerateImageInput): Pick<ImagePipelineOptions, "sampleCount" | "rerank" | "refine" | "requestMode"> {
+  const requestedSampleCount = input.sample_count ?? 2;
+
   if (input.quality_mode === "fast") {
     return {
       sampleCount: 1,
@@ -154,7 +160,7 @@ function applyQualityMode(input: GenerateImageInput): Pick<ImagePipelineOptions,
   }
 
   if (input.quality_mode === "official_like") {
-    const sampleCount = Math.max(input.sample_count, 4);
+    const sampleCount = Math.max(requestedSampleCount, 3);
     return {
       sampleCount,
       rerank: true,
@@ -164,7 +170,7 @@ function applyQualityMode(input: GenerateImageInput): Pick<ImagePipelineOptions,
   }
 
   return {
-    sampleCount: input.sample_count,
+    sampleCount: requestedSampleCount,
     rerank: input.rerank,
     refine: input.refine,
     requestMode: input.request_mode
